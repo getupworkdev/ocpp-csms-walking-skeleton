@@ -316,6 +316,7 @@ dependencies = [
  "sqlx",
  "thiserror",
  "tokio",
+ "tokio-tungstenite",
  "tracing",
  "tracing-subscriber",
  "utoipa",

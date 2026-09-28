@@ -1,0 +1,473 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "OCPP CSMS walking skeleton",
+    "description": "Chargers and charging sessions recorded by the OCPP 1.6J gateway. Charge points themselves connect over WebSocket at `/ocpp/{chargePointId}`, which is not part of this HTTP API.",
+    "license": {
+      "name": "MIT",
+      "identifier": "MIT"
+    },
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/api/chargers": {
+      "get": {
+        "tags": [
+          "chargers"
+        ],
+        "operationId": "list_chargers",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Charger"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/chargers/{id}": {
+      "get": {
+        "tags": [
+          "chargers"
+        ],
+        "operationId": "get_charger",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Charge point identity",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Charger"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/sessions": {
+      "get": {
+        "tags": [
+          "sessions"
+        ],
+        "operationId": "list_sessions",
+        "parameters": [
+          {
+            "name": "chargerId",
+            "in": "query",
+            "description": "Only sessions on this charger.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/SessionStatus"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Page size, 1 to 500. Defaults to 50.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Newest first",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Session"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/sessions/{transactionId}": {
+      "get": {
+        "tags": [
+          "sessions"
+        ],
+        "operationId": "get_session",
+        "parameters": [
+          {
+            "name": "transactionId",
+            "in": "path",
+            "description": "OCPP transactionId",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ApiError": {
+        "type": "object",
+        "required": [
+          "error"
+        ],
+        "properties": {
+          "error": {
+            "type": "string"
+          }
+        }
+      },
+      "Charger": {
+        "type": "object",
+        "required": [
+          "id",
+          "firstSeenAt",
+          "lastSeenAt",
+          "connected"
+        ],
+        "properties": {
+          "connected": {
+            "type": "boolean",
+            "description": "Whether this CSMS instance currently holds a WebSocket for it."
+          },
+          "firmwareVersion": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "firstSeenAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "id": {
+            "type": "string",
+            "description": "Charge point identity from the WebSocket URL."
+          },
+          "lastBootAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "lastHeartbeatAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "lastSeenAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "model": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "serialNumber": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "vendor": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "MeterSample": {
+        "type": "object",
+        "required": [
+          "sampledAt",
+          "energyWh",
+          "sourceUniqueId"
+        ],
+        "properties": {
+          "energyWh": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "sampledAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "sourceUniqueId": {
+            "type": "string"
+          }
+        }
+      },
+      "Session": {
+        "type": "object",
+        "description": "A charging session. Times are the charger's own timestamps; `*ReceivedAt`\nare when the CSMS got the message, which differ when a charger was offline.",
+        "required": [
+          "transactionId",
+          "chargerId",
+          "connectorId",
+          "idTag",
+          "idTagStatus",
+          "status",
+          "startedAt",
+          "meterStartWh",
+          "tariff",
+          "startReceivedAt"
+        ],
+        "properties": {
+          "chargerId": {
+            "type": "string"
+          },
+          "connectorId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "costMinor": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "Final price in minor units of `tariff.currency`, set when the session stops."
+          },
+          "energyWh": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "meterStop - meterStart, set when the session stops."
+          },
+          "idTag": {
+            "type": "string"
+          },
+          "idTagStatus": {
+            "type": "string"
+          },
+          "latestMeterWh": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "Most recent energy register reading by sample time (not arrival time)."
+          },
+          "meterStartWh": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "meterStopWh": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          },
+          "startReceivedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "startedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "status": {
+            "$ref": "#/components/schemas/SessionStatus"
+          },
+          "stopReason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "stopReceivedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "stoppedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "tariff": {
+            "$ref": "#/components/schemas/TariffSnapshot"
+          },
+          "transactionId": {
+            "type": "integer",
+            "format": "int32",
+            "description": "OCPP transactionId, assigned by the CSMS."
+          }
+        }
+      },
+      "SessionDetail": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Session"
+          },
+          {
+            "type": "object",
+            "required": [
+              "events",
+              "meterValues"
+            ],
+            "properties": {
+              "events": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/SessionEvent"
+                },
+                "description": "Every OCPP message logged against this transaction, in arrival order."
+              },
+              "meterValues": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/MeterSample"
+                },
+                "description": "Energy register samples in sample-time order."
+              }
+            }
+          }
+        ]
+      },
+      "SessionEvent": {
+        "type": "object",
+        "required": [
+          "uniqueId",
+          "action",
+          "receivedAt",
+          "duplicates"
+        ],
+        "properties": {
+          "action": {
+            "type": "string"
+          },
+          "duplicates": {
+            "type": "integer",
+            "format": "int32",
+            "description": "How many further copies of this message were received and not reprocessed."
+          },
+          "receivedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "uniqueId": {
+            "type": "string"
+          }
+        }
+      },
+      "SessionStatus": {
+        "type": "string",
+        "enum": [
+          "active",
+          "completed"
+        ]
+      },
+      "TariffSnapshot": {
+        "type": "object",
+        "description": "The tariff as it was when the session started.",
+        "required": [
+          "tariffId",
+          "currency",
+          "pricePerKwhMinor",
+          "sessionFeeMinor"
+        ],
+        "properties": {
+          "currency": {
+            "type": "string"
+          },
+          "pricePerKwhMinor": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "sessionFeeMinor": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "tariffId": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "chargers",
+      "description": "Charge points that have connected"
+    },
+    {
+      "name": "sessions",
+      "description": "Charging sessions (OCPP transactions)"
+    }
+  ]
+}

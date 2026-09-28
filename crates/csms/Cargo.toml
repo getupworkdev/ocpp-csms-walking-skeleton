@@ -26,3 +26,4 @@ utoipa.workspace = true
 [dev-dependencies]
 charger-sim = { path = "../charger-sim" }
 reqwest = { version = "0.13", default-features = false, features = ["json"] }
+tokio-tungstenite.workspace = true
