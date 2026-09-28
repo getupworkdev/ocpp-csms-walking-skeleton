@@ -114,6 +114,10 @@ impl Frame {
     pub fn parse(text: &str) -> Result<Self, FrameError> {
         let value: Value =
             serde_json::from_str(text).map_err(|e| FrameError::NotJson(e.to_string()))?;
+        Self::from_value(&value)
+    }
+
+    pub fn from_value(value: &Value) -> Result<Self, FrameError> {
         let items = value.as_array().ok_or(FrameError::NotAnArray)?;
         let type_id = items
             .first()
